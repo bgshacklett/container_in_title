@@ -1,0 +1,27 @@
+Manifest-Version: 1.0
+
+Name: background_script.js
+Digest-Algorithms: SHA1 SHA256
+SHA1-Digest: U+4bIN08xPlua0WHVRbWDJ6CidI=
+SHA256-Digest: AXqVam8zNvWmUpiMBnhnwm+YcUC84Y9/Z4AsmjKg8m4=
+
+Name: manifest.json
+Digest-Algorithms: SHA1 SHA256
+SHA1-Digest: VMI2nYtrH3tAmwXQcyyHy22Bq58=
+SHA256-Digest: PDK+hULQgYy8+U/aEvLtO2LLXrdXj7n0ZHaIcYdQon8=
+
+Name: icons/container-to-title.png
+Digest-Algorithms: SHA1 SHA256
+SHA1-Digest: o3q27WyEAKmF3hP2Q8uaGx5t4FI=
+SHA256-Digest: SL0DqHC1Du3eOd75OiIA2Sb8DO6e/lffRfl202JL8CI=
+
+Name: META-INF/cose.manifest
+Digest-Algorithms: SHA1 SHA256
+SHA1-Digest: QWLYDmnFD2A2kOYYfIZqU5CA55I=
+SHA256-Digest: i4Ogqdx6vxwxb/rgqHV9xuybFaQqtsKSSXExUUAAMIQ=
+
+Name: META-INF/cose.sig
+Digest-Algorithms: SHA1 SHA256
+SHA1-Digest: GvdGvqQR8sOnSjj9GwBd9iWegGE=
+SHA256-Digest: Okyfl8H/uwe86NH0y24dH03gyQbGx3VqL42kXvLr2uI=
+

@@ -1,0 +1,25 @@
+{
+  "manifest_version": 2,
+  "name": "Container In Title",
+  "description": "Modifies the Firefox window title to prepend the current tab's container, if it exists. For filtering/categorizing in time-tracking software, among other things",
+  "version": "0.0.1",
+  "icons": {
+    "64": "icons/container-to-title.png"
+  },
+  "background": {
+    "scripts": [
+      "background_script.js"
+    ]
+  },
+  "permissions": [
+    "activeTab",
+    "contextualIdentities",
+    "cookies",
+    "<all_urls>"
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "{220d013f-ca2e-42dc-8438-de3f4cb7b986}"
+    }
+  }
+}
