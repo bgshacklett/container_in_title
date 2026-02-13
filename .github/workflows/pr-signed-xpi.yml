@@ -1,0 +1,94 @@
+name: PR Signed Pre-Release XPI
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  sign:
+    # Skip PRs from forks — AMO secrets aren't exposed to fork PRs and signing would fail.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Compute pre-release version
+        id: ver
+        run: |
+          base=$(node -p "require('./manifest.json').version")
+          prerelease="${base}.${{ github.run_number }}"
+          echo "version=${prerelease}" >> "$GITHUB_OUTPUT"
+
+      - name: Patch manifest version
+        run: |
+          node -e "
+            const fs = require('fs');
+            const m = JSON.parse(fs.readFileSync('manifest.json','utf8'));
+            m.version = '${{ steps.ver.outputs.version }}';
+            fs.writeFileSync('manifest.json', JSON.stringify(m, null, 2) + '\n');
+          "
+
+      - name: Sign XPI via AMO
+        env:
+          AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+          AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        run: |
+          npx web-ext@7.11.0 sign \
+            --config ./.web-ext-config.js \
+            --channel=unlisted \
+            --api-key="$AMO_JWT_ISSUER" \
+            --api-secret="$AMO_JWT_SECRET"
+
+      - name: Locate signed XPI
+        id: xpi
+        run: |
+          path=$(ls artifacts/*.xpi | head -n1)
+          echo "path=${path}" >> "$GITHUB_OUTPUT"
+          echo "name=$(basename "$path")" >> "$GITHUB_OUTPUT"
+
+      - name: Upload signed XPI artifact
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-xpi-pr-${{ github.event.pull_request.number }}-${{ steps.ver.outputs.version }}
+          path: ${{ steps.xpi.outputs.path }}
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Comment on PR with download link
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const version = '${{ steps.ver.outputs.version }}';
+            const xpiName = '${{ steps.xpi.outputs.name }}';
+            const artifactUrl = '${{ steps.upload.outputs.artifact-url }}';
+            const body = [
+              '### Signed pre-release XPI ready',
+              '',
+              `- **Version:** \`${version}\``,
+              `- **File:** \`${xpiName}\``,
+              `- **Download:** ${artifactUrl}`,
+              '',
+              'Install via `about:addons` → gear icon → "Install Add-on From File…".',
+              '',
+              '_Artifact download requires a GitHub login and expires after 30 days._',
+            ].join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body,
+            });
