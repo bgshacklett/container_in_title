@@ -1,4 +1,5 @@
 {
+  "license": "MPL-2.0",
   "scripts": {
     "build": "npx web-ext@7.11.0 build --config ./.web-ext-config.js",
     "sign": "npx web-ext@7.11.0 sign --config ./.web-ext-config.js"

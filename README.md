@@ -2,6 +2,15 @@
 
 Firefox extension that prepends the current tab's container name to the window title so you can filter windows in time-tracking tools.
 
+## Attribution and Fork Status
+
+This project is maintained as a fork of an extension originally created by ResolveIT.
+
+- Original authorship: ResolveIT
+- Current repository: maintained by this fork's maintainers
+- Affiliation: This fork is not affiliated with or endorsed by ResolveIT.
+- Trademark notice: Any ResolveIT names or marks are referenced only to identify the upstream origin.
+
 ## Self-publishing and install (no about:debugging)
 
 Firefox only installs permanently signed add-ons. Use Mozilla's unlisted signing to get a distributable XPI without publishing to the public registry.
@@ -14,3 +23,9 @@ Firefox only installs permanently signed add-ons. Use Mozilla's unlisted signing
 Notes:
 - The unsigned build is only installable if you disable signature enforcement in Developer Edition/ESR (`xpinstall.signatures.required=false`).
 - Old `META-INF` signing artifacts are intentionally excluded; a fresh signature is generated during the `npm run sign` step.
+
+## Compliance Checklist Before Public Release
+
+- Keep `LICENSE` aligned with upstream MPL-2.0 terms.
+- Keep attribution details in `NOTICE`.
+- Do not publish using ResolveIT branding, logos, or marks in a way that implies endorsement.

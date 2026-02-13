@@ -1,6 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Container In Title",
+  "author": "Fork maintainers; original extension by ResolveIT",
   "description": "Modifies the Firefox window title to prepend the current tab's container, if it exists. For filtering/categorizing in time-tracking software, among other things",
   "version": "0.0.2",
   "icons": {
