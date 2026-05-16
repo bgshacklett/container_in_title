@@ -6,11 +6,11 @@ on:
     paths:
       - 'manifest.json'
       - 'background_script.js'
+      - 'lib/**'
       - 'icons/**'
-      - 'test.js'
       - '.web-ext-config.js'
       - 'package.json'
-      - 'package-lock.json'
+      - 'pnpm-lock.yaml'
       - '.github/workflows/pr-signed-xpi.yml'
 
 permissions:
@@ -40,9 +40,13 @@ jobs:
 
       - name: Compute pre-release version
         id: ver
+        env:
+          RUN_NUMBER: ${{ github.run_number }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
         run: |
           base=$(node -p "require('./manifest.json').version")
-          prerelease="${base}.${{ github.run_number }}"
+          suffix=$((RUN_NUMBER * 1000 + RUN_ATTEMPT))
+          prerelease="${base}.${suffix}"
           echo "version=${prerelease}" >> "$GITHUB_OUTPUT"
 
       - name: Patch manifest version
