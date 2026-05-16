@@ -1,7 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import title from "../lib/title.js";
 
-const { handleTabUpdate, updateTabTitlePrefix, updateTitleWithPrefix } = title;
+const {
+  handleTabUpdate,
+  updateTabTitlePrefix,
+  updateTitleWithPrefix,
+  registerListeners,
+} = title;
 
 function makeBrowserStub() {
   return {
@@ -51,6 +56,24 @@ describe("updateTabTitlePrefix", () => {
     expect(tabId).toBe(42);
     expect(opts.code).toContain('"Work ▶️ "');
     expect(opts.code).toContain("function updateTitleWithPrefix");
+  });
+});
+
+describe("registerListeners", () => {
+  it("binds handleTabUpdate to tabs.onActivated with no filter", () => {
+    registerListeners();
+    expect(browser.tabs.onActivated.addListener).toHaveBeenCalledOnce();
+    expect(browser.tabs.onActivated.addListener.mock.calls[0]).toEqual([
+      handleTabUpdate,
+    ]);
+  });
+
+  it("binds handleTabUpdate to tabs.onUpdated with no filter", () => {
+    registerListeners();
+    expect(browser.tabs.onUpdated.addListener).toHaveBeenCalledOnce();
+    expect(browser.tabs.onUpdated.addListener.mock.calls[0]).toEqual([
+      handleTabUpdate,
+    ]);
   });
 });
 
