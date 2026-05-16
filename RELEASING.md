@@ -19,42 +19,49 @@ release event.
 ## Cutting a release
 
 1. Open a **release PR** that:
-   - Bumps `version` in `manifest.json`. AMO accepts only the numeric
-     toolkit format `^(0|[1-9][0-9]{0,8})([.](0|[1-9][0-9]{0,8})){0,3}$`
-     — no letter suffixes, no hyphens. Stable releases are 3 segments
-     (`0.0.3`). Pre-releases ("RCs") of upcoming `0.0.3` use a 4-segment
-     version rooted in the *previous* stable: `0.0.2.1`, `0.0.2.2`, … This
-     is what sorts them correctly between `0.0.2` and `0.0.3` in Firefox's
-     version comparator, so anyone running an RC auto-updates when the
-     final ships.
-   - Adds a matching `## [X.Y.Z]` or `## [X.Y.Z.N]` section to
-     `CHANGELOG.md` under `## [Unreleased]`, summarizing what changed. The
-     header text must equal the version exactly; the workflow fails if no
-     section matches.
+   - Bumps `version` in `manifest.json` to a 3-segment value
+     (e.g. `0.0.2` → `0.0.3`). AMO requires the version to match
+     `^(0|[1-9][0-9]{0,8})([.](0|[1-9][0-9]{0,8})){0,3}$` — digits and
+     dots only, max 4 segments, no letters or hyphens.
+   - Adds a matching `## [X.Y.Z]` section to `CHANGELOG.md` under
+     `## [Unreleased]`. The header text must equal the version exactly;
+     the workflow fails if no section matches.
 2. Merge the release PR to `main`.
 3. Tag the merge commit and push the tag:
    ```sh
    git checkout main
    git pull
-   git tag v0.0.2.1   # pre-release of upcoming 0.0.3
-   git push origin v0.0.2.1
+   git tag v0.0.3
+   git push origin v0.0.3
    ```
-   The tag (minus `v`) must exactly equal `manifest.json`'s `version`. A
-   4-segment version automatically marks the GitHub Release as a
-   pre-release; 1–3 segments produce a normal release.
+   The tag (minus `v`) must exactly equal `manifest.json`'s `version`.
 4. Watch the workflow run in the Actions tab. On success, the signed XPI is
    published at:
    - Version-pinned: `https://github.com/<org>/<repo>/releases/download/v0.0.3/container_in_title-0.0.3-an+fx.xpi`
    - Stable alias: `https://github.com/<org>/<repo>/releases/latest/download/container_in_title.xpi`
-     (note: GitHub's "latest" excludes pre-releases, so the stable alias
-     keeps pointing at the last full release)
+
+## Testing changes before release
+
+To get a signed, installable XPI for a candidate change without cutting a
+release, open a pull request against `main` (a draft PR is fine). The
+`pr-signed-xpi.yml` workflow signs the build via AMO and posts a comment
+on the PR with a download link.
+
+Each PR build gets a unique version of the form
+`<manifest-version>.<build-id>`, where `<build-id>` encodes the workflow
+run number and attempt so re-runs and successive pushes never collide on
+AMO. PR build versions sort below the next stable release in Firefox's
+version comparator, so anyone testing a PR build auto-updates to the
+stable release once it ships.
+
+PR builds are not GitHub Releases — the signed XPI is uploaded as a
+workflow artifact and the PR comment is the canonical download point.
+GitHub artifacts expire after 30 days.
 
 ## What the workflow does
 
 1. Verifies `manifest.json` version equals the tag (minus the `v` prefix);
-   fails loudly if they disagree. Detects pre-release versions by segment
-   count — 4 numeric segments (`0.0.2.1`) marks the GitHub Release as a
-   pre-release; 1–3 segments marks it as a normal release.
+   fails loudly if they disagree.
 2. Extracts the `## [X.Y.Z]` section from `CHANGELOG.md` for release notes.
 3. Creates a **draft** GitHub Release with those notes (no assets yet).
 4. Installs dependencies and signs the XPI via AMO (`web-ext sign --channel=unlisted`).
