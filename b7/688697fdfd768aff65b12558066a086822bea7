@@ -1,0 +1,19 @@
+.github/workflows/pr-signed-xpi.yml
+  s_08d9a0066a4981::t_ffc6e96288a24a 6-14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "b7688697fdfd768aff65b12558066a086822bea7",
+  "prompts": {},
+  "sessions": {
+    "s_08d9a0066a4981": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a997d787-6d4f-4d99-9a44-174fc439beac",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Brian G. Shacklett <brian@digital-traffic.net>"
+    }
+  }
+}
