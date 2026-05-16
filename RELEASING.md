@@ -86,6 +86,6 @@ half-built Release and consumes no AMO version slot.
   Configure tag protection if that boundary needs to be narrower than `write`
   access to the repo.
 - Do not sign locally. If the workflow is broken, fix the workflow rather
-  than running `npm run sign` with credentials on a developer machine — local
-  signing leaks the AMO secret into shell history, environment dumps, and
-  process listings.
+  than running `pnpm run sign` with credentials on a developer machine —
+  local signing leaks the AMO secret into shell history, environment
+  dumps, and process listings.

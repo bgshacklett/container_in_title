@@ -10,5 +10,8 @@ module.exports = {
     "package.json",
     "README.md",
     ".web-ext-config.js",
+    "test.js",
+    "test/**",
+    "vitest.config.js",
   ],
 };
