@@ -1,0 +1,105 @@
+name: Release Signed XPI
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Verify manifest version matches tag
+        id: ver
+        env:
+          GIT_REF: ${{ github.ref_name }}
+        run: |
+          tag_version="${GIT_REF#v}"
+          manifest_version=$(node -p "require('./manifest.json').version")
+          if [ "$tag_version" != "$manifest_version" ]; then
+            echo "::error::Tag $GIT_REF implies version $tag_version, but manifest.json is $manifest_version. Bump manifest.json and re-tag."
+            exit 1
+          fi
+          echo "version=${tag_version}" >> "$GITHUB_OUTPUT"
+
+      - name: Extract changelog section for this version
+        id: changelog
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          notes=$(awk -v v="$VERSION" '
+            $0 ~ "^## \\[" v "\\]" { capture=1; next }
+            capture && /^## / { exit }
+            capture { print }
+          ' CHANGELOG.md)
+          if [ -z "$(echo "$notes" | tr -d '[:space:]')" ]; then
+            echo "::error::No ## [$VERSION] section found in CHANGELOG.md."
+            exit 1
+          fi
+          {
+            echo 'notes<<CHANGELOG_EOF'
+            echo "$notes"
+            echo 'CHANGELOG_EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create draft release (idempotent)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ steps.ver.outputs.version }}
+          NOTES: ${{ steps.changelog.outputs.notes }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; updating notes and keeping draft state."
+            gh release edit "$TAG" --notes "$NOTES" --title "$VERSION"
+          else
+            gh release create "$TAG" --draft --title "$VERSION" --notes "$NOTES"
+          fi
+
+      - run: npm ci
+
+      - name: Sign XPI via AMO
+        env:
+          AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+          AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        run: |
+          npx web-ext@7.11.0 sign \
+            --config ./.web-ext-config.js \
+            --channel=unlisted \
+            --api-key="$AMO_JWT_ISSUER" \
+            --api-secret="$AMO_JWT_SECRET"
+
+      - name: Stage release assets
+        id: assets
+        run: |
+          original=$(ls artifacts/*.xpi | head -n1)
+          stable="artifacts/container_in_title.xpi"
+          cp "$original" "$stable"
+          echo "original=${original}" >> "$GITHUB_OUTPUT"
+          echo "stable=${stable}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload assets to draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          ORIGINAL: ${{ steps.assets.outputs.original }}
+          STABLE: ${{ steps.assets.outputs.stable }}
+        run: |
+          gh release upload "$TAG" "$ORIGINAL" "$STABLE" --clobber
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release edit "$TAG" --draft=false
