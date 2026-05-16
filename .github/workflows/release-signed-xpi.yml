@@ -31,6 +31,11 @@ jobs:
             exit 1
           fi
           echo "version=${tag_version}" >> "$GITHUB_OUTPUT"
+          if [[ "$tag_version" == *-* ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Extract changelog section for this version
         id: changelog
@@ -58,12 +63,13 @@ jobs:
           TAG: ${{ github.ref_name }}
           VERSION: ${{ steps.ver.outputs.version }}
           NOTES: ${{ steps.changelog.outputs.notes }}
+          IS_PRERELEASE: ${{ steps.ver.outputs.prerelease }}
         run: |
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Release $TAG already exists; updating notes and keeping draft state."
-            gh release edit "$TAG" --draft --notes "$NOTES" --title "$VERSION"
+            gh release edit "$TAG" --draft --prerelease="$IS_PRERELEASE" --notes "$NOTES" --title "$VERSION"
           else
-            gh release create "$TAG" --draft --title "$VERSION" --notes "$NOTES"
+            gh release create "$TAG" --draft --prerelease="$IS_PRERELEASE" --title "$VERSION" --notes "$NOTES"
           fi
 
       - run: npm ci
@@ -99,5 +105,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
+          IS_PRERELEASE: ${{ steps.ver.outputs.prerelease }}
         run: |
-          gh release edit "$TAG" --draft=false
+          gh release edit "$TAG" --draft=false --prerelease="$IS_PRERELEASE"

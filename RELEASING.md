@@ -19,9 +19,12 @@ release event.
 ## Cutting a release
 
 1. Open a **release PR** that:
-   - Bumps `version` in `manifest.json` (e.g. `0.0.2` → `0.0.3`).
+   - Bumps `version` in `manifest.json` (e.g. `0.0.2` → `0.0.3`, or
+     `0.0.3-rc1` for a pre-release).
    - Adds a `## [0.0.3]` section to `CHANGELOG.md` under `## [Unreleased]`,
-     summarizing what changed since the previous release.
+     summarizing what changed since the previous release. Pre-release tags
+     need their own matching section (e.g. `## [0.0.3-rc1]`); the workflow
+     fails if the section is missing.
 2. Merge the release PR to `main`.
 3. Tag the merge commit and push the tag:
    ```sh
@@ -30,15 +33,22 @@ release event.
    git tag v0.0.3
    git push origin v0.0.3
    ```
+   A SemVer pre-release suffix on the tag (`v0.0.3-rc1`, `v0.0.3-beta.2`)
+   automatically marks the GitHub Release as a pre-release. Tags without a
+   suffix produce a normal release.
 4. Watch the workflow run in the Actions tab. On success, the signed XPI is
    published at:
    - Version-pinned: `https://github.com/<org>/<repo>/releases/download/v0.0.3/container_in_title-0.0.3-an+fx.xpi`
    - Stable alias: `https://github.com/<org>/<repo>/releases/latest/download/container_in_title.xpi`
+     (note: GitHub's "latest" excludes pre-releases, so the stable alias
+     keeps pointing at the last full release)
 
 ## What the workflow does
 
 1. Verifies `manifest.json` version equals the tag (minus the `v` prefix);
-   fails loudly if they disagree.
+   fails loudly if they disagree. Detects whether the tag is a SemVer
+   pre-release (contains a `-`) and sets the GitHub Release `--prerelease`
+   flag accordingly.
 2. Extracts the `## [X.Y.Z]` section from `CHANGELOG.md` for release notes.
 3. Creates a **draft** GitHub Release with those notes (no assets yet).
 4. Installs dependencies and signs the XPI via AMO (`web-ext sign --channel=unlisted`).
