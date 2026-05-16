@@ -13,5 +13,7 @@ module.exports = {
     "test.js",
     "test/**",
     "vitest.config.js",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
   ],
 };
