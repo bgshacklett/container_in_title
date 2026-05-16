@@ -3,6 +3,15 @@ name: PR Signed Pre-Release XPI
 on:
   pull_request:
     branches: [main]
+    paths:
+      - 'manifest.json'
+      - 'background_script.js'
+      - 'icons/**'
+      - 'test.js'
+      - '.web-ext-config.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/pr-signed-xpi.yml'
 
 permissions:
   contents: read
