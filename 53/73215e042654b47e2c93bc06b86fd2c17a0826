@@ -1,0 +1,21 @@
+.github/workflows/release-signed-xpi.yml
+  s_08d9a0066a4981::t_07e15d11894350 1-105
+RELEASING.md
+  s_08d9a0066a4981::t_5358d4b7d14ca9 1-75
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "5373215e042654b47e2c93bc06b86fd2c17a0826",
+  "prompts": {},
+  "sessions": {
+    "s_08d9a0066a4981": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a997d787-6d4f-4d99-9a44-174fc439beac",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Brian G. Shacklett <brian@digital-traffic.net>"
+    }
+  }
+}
