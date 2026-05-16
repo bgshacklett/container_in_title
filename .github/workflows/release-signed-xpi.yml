@@ -61,7 +61,7 @@ jobs:
         run: |
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Release $TAG already exists; updating notes and keeping draft state."
-            gh release edit "$TAG" --notes "$NOTES" --title "$VERSION"
+            gh release edit "$TAG" --draft --notes "$NOTES" --title "$VERSION"
           else
             gh release create "$TAG" --draft --title "$VERSION" --notes "$NOTES"
           fi
