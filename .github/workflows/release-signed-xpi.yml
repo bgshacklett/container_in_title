@@ -25,17 +25,20 @@ jobs:
           GIT_REF: ${{ github.ref_name }}
         run: |
           tag_version="${GIT_REF#v}"
+          if [[ "$tag_version" == *-* ]]; then
+            prerelease=true
+            base_version="${tag_version%%-*}"
+          else
+            prerelease=false
+            base_version="$tag_version"
+          fi
           manifest_version=$(node -p "require('./manifest.json').version")
-          if [ "$tag_version" != "$manifest_version" ]; then
-            echo "::error::Tag $GIT_REF implies version $tag_version, but manifest.json is $manifest_version. Bump manifest.json and re-tag."
+          if [ "$base_version" != "$manifest_version" ]; then
+            echo "::error::Tag $GIT_REF implies version $base_version, but manifest.json is $manifest_version. Bump manifest.json and re-tag."
             exit 1
           fi
           echo "version=${tag_version}" >> "$GITHUB_OUTPUT"
-          if [[ "$tag_version" == *-* ]]; then
-            echo "prerelease=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "prerelease=false" >> "$GITHUB_OUTPUT"
-          fi
+          echo "prerelease=${prerelease}" >> "$GITHUB_OUTPUT"
 
       - name: Extract changelog section for this version
         id: changelog
