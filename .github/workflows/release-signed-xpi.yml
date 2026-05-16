@@ -73,14 +73,14 @@ jobs:
           AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
           AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
         run: |
+      - name: Sign XPI via AMO
+        env:
+          WEB_EXT_API_KEY: ${{ secrets.AMO_JWT_ISSUER }}
+          WEB_EXT_API_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        run: |
           npx web-ext@7.11.0 sign \
             --config ./.web-ext-config.js \
-            --channel=unlisted \
-            --api-key="$AMO_JWT_ISSUER" \
-            --api-secret="$AMO_JWT_SECRET"
-
-      - name: Stage release assets
-        id: assets
+            --channel=unlisted
         run: |
           original=$(ls artifacts/*.xpi | head -n1)
           stable="artifacts/container_in_title.xpi"
