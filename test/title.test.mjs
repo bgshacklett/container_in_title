@@ -68,11 +68,12 @@ describe("registerListeners", () => {
     ]);
   });
 
-  it("binds handleTabUpdate to tabs.onUpdated with no filter", () => {
+  it("binds handleTabUpdate to tabs.onUpdated filtered to title changes only", () => {
     registerListeners();
     expect(browser.tabs.onUpdated.addListener).toHaveBeenCalledOnce();
     expect(browser.tabs.onUpdated.addListener.mock.calls[0]).toEqual([
       handleTabUpdate,
+      { properties: ["title"] },
     ]);
   });
 });
