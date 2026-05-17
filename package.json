@@ -1,11 +1,15 @@
 {
   "license": "MPL-2.0",
+  "packageManager": "pnpm@11.1.2",
   "scripts": {
     "build": "npx web-ext@7.11.0 build --config ./.web-ext-config.js",
-    "sign": "npx web-ext@7.11.0 sign --config ./.web-ext-config.js"
+    "sign": "npx web-ext@7.11.0 sign --config ./.web-ext-config.js",
+    "test": "vitest run"
   },
   "devDependencies": {
     "@types/firefox-webext-browser": "^120.0.3",
+    "jsdom": "^29.1.1",
+    "vitest": "^4.1.6",
     "web-ext": "^7.11.0"
   }
 }

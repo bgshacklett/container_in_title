@@ -9,6 +9,7 @@
   },
   "background": {
     "scripts": [
+      "lib/title.js",
       "background_script.js"
     ]
   },
