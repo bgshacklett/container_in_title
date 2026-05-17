@@ -249,3 +249,99 @@ describe("handleTabUpdate", () => {
     consoleError.mockRestore();
   });
 });
+
+// Hard-coded IPC-call-count budgets for representative event bursts.
+// Bursts are simulated sequentially with flushPromises() between each
+// handleTabUpdate to model real-world timing, where title-change events
+// fire far slower than IPC round-trips. If these numbers regress, the
+// cache or filter behavior likely broke — check git blame on the
+// changed code.
+describe("perf budgets", () => {
+  const BURST_SIZE = 20;
+
+  function setActiveTab(cookieStoreId) {
+    browser.tabs.query.mockImplementation((_, cb) =>
+      cb([{ id: 1, cookieStoreId }]),
+    );
+  }
+
+  it("single-container burst: 1 contextualIdentities.get for the whole burst", async () => {
+    setActiveTab("firefox-container-3");
+    browser.contextualIdentities.get.mockResolvedValue({
+      cookieStoreId: "firefox-container-3",
+      name: "Banking",
+    });
+
+    for (let i = 0; i < BURST_SIZE; i++) {
+      handleTabUpdate();
+      await flushPromises();
+    }
+
+    expect(browser.contextualIdentities.get).toHaveBeenCalledTimes(1);
+    expect(browser.tabs.executeScript).toHaveBeenCalledTimes(BURST_SIZE);
+  });
+
+  it("multi-container burst: one contextualIdentities.get per unique container", async () => {
+    const containers = [
+      "firefox-container-3",
+      "firefox-container-5",
+      "firefox-container-7",
+    ];
+    browser.contextualIdentities.get.mockImplementation((id) =>
+      Promise.resolve({ cookieStoreId: id, name: `name-${id}` }),
+    );
+
+    for (let i = 0; i < BURST_SIZE; i++) {
+      setActiveTab(containers[i % containers.length]);
+      handleTabUpdate();
+      await flushPromises();
+    }
+
+    expect(browser.contextualIdentities.get).toHaveBeenCalledTimes(containers.length);
+    expect(browser.tabs.executeScript).toHaveBeenCalledTimes(BURST_SIZE);
+  });
+
+  it("default-profile burst: zero IPC beyond the per-event tabs.query", async () => {
+    setActiveTab("firefox-default");
+
+    for (let i = 0; i < BURST_SIZE; i++) {
+      handleTabUpdate();
+      await flushPromises();
+    }
+
+    expect(browser.contextualIdentities.get).not.toHaveBeenCalled();
+    expect(browser.tabs.executeScript).not.toHaveBeenCalled();
+  });
+
+  it("invalidation mid-burst: one re-fetch after onUpdated, no other re-fetches", async () => {
+    setActiveTab("firefox-container-3");
+    browser.contextualIdentities.get.mockResolvedValue({
+      cookieStoreId: "firefox-container-3",
+      name: "Banking",
+    });
+
+    registerListeners();
+    const invalidator =
+      browser.contextualIdentities.onUpdated.addListener.mock.calls[0][0];
+
+    for (let i = 0; i < BURST_SIZE / 2; i++) {
+      handleTabUpdate();
+      await flushPromises();
+    }
+
+    invalidator({
+      contextualIdentity: {
+        cookieStoreId: "firefox-container-3",
+        name: "Banking renamed",
+      },
+    });
+
+    for (let i = 0; i < BURST_SIZE / 2; i++) {
+      handleTabUpdate();
+      await flushPromises();
+    }
+
+    expect(browser.contextualIdentities.get).toHaveBeenCalledTimes(2);
+    expect(browser.tabs.executeScript).toHaveBeenCalledTimes(BURST_SIZE);
+  });
+});
