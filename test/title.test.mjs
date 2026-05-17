@@ -1,11 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import title from "../lib/title.js";
 
+const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0));
+
 const {
   handleTabUpdate,
   updateTabTitlePrefix,
   updateTitleWithPrefix,
   registerListeners,
+  clearContextCache,
 } = title;
 
 function makeBrowserStub() {
@@ -18,12 +21,15 @@ function makeBrowserStub() {
     },
     contextualIdentities: {
       get: vi.fn(),
+      onUpdated: { addListener: vi.fn() },
+      onRemoved: { addListener: vi.fn() },
     },
   };
 }
 
 beforeEach(() => {
   globalThis.browser = makeBrowserStub();
+  clearContextCache();
 });
 
 afterEach(() => {
@@ -76,6 +82,124 @@ describe("registerListeners", () => {
       { properties: ["title"] },
     ]);
   });
+
+  it("binds an invalidator to contextualIdentities.onUpdated", () => {
+    registerListeners();
+    expect(browser.contextualIdentities.onUpdated.addListener).toHaveBeenCalledOnce();
+    expect(typeof browser.contextualIdentities.onUpdated.addListener.mock.calls[0][0]).toBe(
+      "function",
+    );
+  });
+
+  it("binds an invalidator to contextualIdentities.onRemoved", () => {
+    registerListeners();
+    expect(browser.contextualIdentities.onRemoved.addListener).toHaveBeenCalledOnce();
+    expect(typeof browser.contextualIdentities.onRemoved.addListener.mock.calls[0][0]).toBe(
+      "function",
+    );
+  });
+});
+
+describe("contextualIdentities cache", () => {
+  function setupActiveTab(cookieStoreId) {
+    browser.tabs.query.mockImplementation((_, cb) =>
+      cb([{ id: 1, cookieStoreId }]),
+    );
+  }
+
+  it("only calls contextualIdentities.get once for repeated lookups of the same container", async () => {
+    setupActiveTab("firefox-container-3");
+    browser.contextualIdentities.get.mockResolvedValue({
+      cookieStoreId: "firefox-container-3",
+      name: "Banking",
+    });
+
+    handleTabUpdate();
+    await flushPromises();
+    handleTabUpdate();
+    await flushPromises();
+
+    expect(browser.contextualIdentities.get).toHaveBeenCalledTimes(1);
+    expect(browser.tabs.executeScript).toHaveBeenCalledTimes(2);
+  });
+
+  it("re-fetches when contextualIdentities.onUpdated fires for the cached id", async () => {
+    setupActiveTab("firefox-container-3");
+    browser.contextualIdentities.get.mockResolvedValue({
+      cookieStoreId: "firefox-container-3",
+      name: "Banking",
+    });
+
+    registerListeners();
+    const invalidator =
+      browser.contextualIdentities.onUpdated.addListener.mock.calls[0][0];
+
+    handleTabUpdate();
+    await flushPromises();
+    expect(browser.contextualIdentities.get).toHaveBeenCalledTimes(1);
+
+    invalidator({
+      contextualIdentity: {
+        cookieStoreId: "firefox-container-3",
+        name: "Banking renamed",
+      },
+    });
+
+    handleTabUpdate();
+    await flushPromises();
+    expect(browser.contextualIdentities.get).toHaveBeenCalledTimes(2);
+  });
+
+  it("re-fetches when contextualIdentities.onRemoved fires for the cached id", async () => {
+    setupActiveTab("firefox-container-3");
+    browser.contextualIdentities.get.mockResolvedValue({
+      cookieStoreId: "firefox-container-3",
+      name: "Banking",
+    });
+
+    registerListeners();
+    const invalidator =
+      browser.contextualIdentities.onRemoved.addListener.mock.calls[0][0];
+
+    handleTabUpdate();
+    await flushPromises();
+    expect(browser.contextualIdentities.get).toHaveBeenCalledTimes(1);
+
+    invalidator({
+      contextualIdentity: { cookieStoreId: "firefox-container-3" },
+    });
+
+    handleTabUpdate();
+    await flushPromises();
+    expect(browser.contextualIdentities.get).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not invalidate unrelated cached ids when one is updated", async () => {
+    browser.contextualIdentities.get.mockImplementation((id) =>
+      Promise.resolve({ cookieStoreId: id, name: `name-${id}` }),
+    );
+
+    registerListeners();
+    const invalidator =
+      browser.contextualIdentities.onUpdated.addListener.mock.calls[0][0];
+
+    setupActiveTab("firefox-container-3");
+    handleTabUpdate();
+    await flushPromises();
+    setupActiveTab("firefox-container-7");
+    handleTabUpdate();
+    await flushPromises();
+    expect(browser.contextualIdentities.get).toHaveBeenCalledTimes(2);
+
+    invalidator({
+      contextualIdentity: { cookieStoreId: "firefox-container-3" },
+    });
+
+    setupActiveTab("firefox-container-7");
+    handleTabUpdate();
+    await flushPromises();
+    expect(browser.contextualIdentities.get).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe("handleTabUpdate", () => {
@@ -85,7 +209,7 @@ describe("handleTabUpdate", () => {
     );
 
     handleTabUpdate();
-    await Promise.resolve();
+    await flushPromises();
 
     expect(browser.contextualIdentities.get).not.toHaveBeenCalled();
     expect(browser.tabs.executeScript).not.toHaveBeenCalled();
@@ -98,7 +222,7 @@ describe("handleTabUpdate", () => {
     browser.contextualIdentities.get.mockResolvedValue({ name: "Banking" });
 
     handleTabUpdate();
-    await Promise.resolve();
+    await flushPromises();
 
     expect(browser.contextualIdentities.get).toHaveBeenCalledWith(
       "firefox-container-3",
@@ -117,8 +241,8 @@ describe("handleTabUpdate", () => {
     browser.contextualIdentities.get.mockRejectedValue(new Error("nope"));
 
     handleTabUpdate();
-    await Promise.resolve();
-    await Promise.resolve();
+    await flushPromises();
+    await flushPromises();
 
     expect(consoleError).toHaveBeenCalled();
     expect(browser.tabs.executeScript).not.toHaveBeenCalled();
